@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Servaa"
+version = "1.0.0"
+id = "artifacts/servaa"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20279
+
+[services.development]
+run = "pnpm --filter @workspace/servaa run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/servaa", "run", "build" ]
+publicDir = "artifacts/servaa/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20279"
+BASE_PATH = "/"

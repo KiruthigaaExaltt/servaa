@@ -1,0 +1,21 @@
+{
+  "name": "@workspace/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema/index.ts"
+  },
+  "scripts": {
+    "seed": "tsx --tsconfig ../../artifacts/servaa/tsconfig.json ./src/seed.ts"
+  },
+  "dependencies": {
+    "mongoose": "^8.19.1",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:"
+  }
+}

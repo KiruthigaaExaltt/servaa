@@ -1,0 +1,218 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /auth/pin:
+    post:
+      operationId: authenticatePin
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role, pin]
+              properties:
+                role: { type: string }
+                pin: { type: string }
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResponse" }
+        "401": { description: Invalid PIN }
+  /auth/pin/change:
+    post:
+      operationId: changePin
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPin, newPin]
+              properties:
+                currentPin: { type: string }
+                newPin: { type: string, minLength: 4, maxLength: 12 }
+      responses:
+        "204": { description: PIN changed }
+        "401": { description: Current PIN invalid }
+  /auth/session:
+    get:
+      operationId: getSession
+      tags: [auth]
+      responses:
+        "200":
+          description: Active session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResponse" }
+        "401": { description: Unauthenticated }
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      responses:
+        "204": { description: Logged out }
+  /collections/{resource}:
+    parameters:
+      - in: path
+        name: resource
+        required: true
+        schema: { type: string }
+    get:
+      operationId: getCollectionResource
+      tags: [collections]
+      responses:
+        "200":
+          description: Module state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CollectionResource" }
+        "404": { description: Not initialized }
+    put:
+      operationId: putCollectionResource
+      tags: [collections]
+      parameters:
+        - in: header
+          name: If-Match
+          required: false
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [value]
+              properties:
+                value: {}
+      responses:
+        "200":
+          description: Saved state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CollectionResource" }
+  /reports/summary:
+    get:
+      operationId: getReportSummary
+      tags: [reports]
+      parameters:
+        - { in: query, name: from, schema: { type: string, format: date-time } }
+        - { in: query, name: to, schema: { type: string, format: date-time } }
+      responses:
+        "200":
+          description: Aggregated real transaction report
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+  /tables:
+    get:
+      operationId: listTables
+      tags: [tables]
+      responses:
+        "200":
+          description: Unified table master and runtime state
+          content: { application/json: { schema: { type: array, items: { type: object, additionalProperties: true } } } }
+  /tables/{id}:
+    patch:
+      operationId: updateTable
+      tags: [tables]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, additionalProperties: true } } }
+      responses:
+        "200": { description: Updated table, content: { application/json: { schema: { type: object, additionalProperties: true } } } }
+        "404": { description: Table not found }
+  /zones:
+    get:
+      operationId: listZones
+      tags: [tables]
+      responses:
+        "200": { description: Zones, content: { application/json: { schema: { type: array, items: { type: object, additionalProperties: true } } } } }
+  /purchase-orders:
+    get:
+      operationId: listPurchaseOrders
+      tags: [procurement]
+      responses:
+        "200": { description: Canonical purchase orders, content: { application/json: { schema: { type: array, items: { type: object, additionalProperties: true } } } } }
+    post:
+      operationId: createPurchaseOrder
+      tags: [procurement]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, additionalProperties: true } } }
+      responses:
+        "201": { description: Purchase order created, content: { application/json: { schema: { type: object, additionalProperties: true } } } }
+  /transactions/settle:
+    post:
+      operationId: settleTransaction
+      tags: [transactions]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, additionalProperties: true } } }
+      responses:
+        "201": { description: Idempotent atomic settlement, content: { application/json: { schema: { type: object, additionalProperties: true } } } }
+  /audit:
+    get:
+      operationId: listAuditEntries
+      tags: [audit]
+      parameters:
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 500 } }
+      responses:
+        "200": { description: Immutable audit entries, content: { application/json: { schema: { type: array, items: { type: object, additionalProperties: true } } } } }
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+        database:
+          type: string
+      required:
+        - status
+    AuthResponse:
+      type: object
+      required: [user]
+      properties:
+        user:
+          type: object
+          required: [id, role]
+          properties:
+            id: { type: string }
+            name: { type: string }
+            role: { type: string }
+    CollectionResource:
+      type: object
+      required: [value]
+      properties:
+        value: {}
+        revision: { type: integer }

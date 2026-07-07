@@ -1,0 +1,61 @@
+Prompt 16: Crew Management & Staff Operations
+Objective: Create the CrewManagement.tsx component to handle employee profiles, shift scheduling, real-time attendance, and payroll summaries.
+
+"Create a new component CrewManagement.tsx to manage the restaurant’s human resources.
+
+1. Staffing KPIs:
+
+Total Staff: (e.g., 24 Active).
+
+On-Duty Now: (e.g., 8 clocked in).
+
+Labor Cost %: (Labor cost vs. Total Sales).
+
+Shift Gaps: (Alerts if a specific zone, like 'Garden', has no waiter assigned).
+
+2. Employee Directory (The 'Crew' List):
+
+Build a searchable grid or table of all staff members.
+
+Card/Row Details: >   - Profile: Small avatar, Name, and Employee ID.
+
+Role Badge: (e.g., Admin, Manager, Head Chef, Waiter, Rider).
+
+Status Badge: 'On Duty' (Green pulse), 'Off Duty' (Gray), or 'On Leave' (Amber).
+
+Quick Stats: Performance rating (stars) and Total hours this week.
+
+3. Shift & Roster Management:
+
+Create a 'Weekly Roster' view.
+
+Functionality: A simple calendar-style grid showing days of the week and 'Shift Blocks' (e.g., Morning: 8 AM - 4 PM, Evening: 4 PM - 12 AM).
+
+Allow the manager to click a block to assign a staff member to a specific 'Zone' (e.g., 'Anil assigned to Main Hall - Evening Shift').
+
+4. Attendance & Live Punch-In:
+
+Add a 'Live Attendance' tab showing exactly what time each staff member clocked in.
+
+Include a 'Manual Punch' button for managers to correct errors.
+
+Show the current 'Session Duration' for everyone on the floor.
+
+5. Financials & Payouts:
+
+Earnings Summary: A view showing Base Salary + Total Tips earned (linked from the FOHManagement Tip ledger).
+
+Payout Status: Toggle between 'Paid' and 'Unpaid' for the current month.
+
+Include a 'Generate Payslip' button that creates a summary of their hours and earnings.
+
+6. Role-Based Permissions (Settings):
+
+A sub-section to define what each role can see (e.g., 'Waiters can see KOTs but not Inventory Prices')."
+
+Why this is the "Team Engine":
+The Tip Loop: This finally connects the tips collected in the FOH module to the actual person's monthly earnings.
+
+Operational Safety: By seeing "On-Duty Now," a manager can quickly spot if they are understaffed before the dinner rush starts.
+
+Accountability: Role-based permissions ensure that sensitive financial data stays with the Admin while the Waiters stay focused on the guests.
