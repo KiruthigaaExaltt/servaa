@@ -42,7 +42,8 @@ interface CRMContextValue {
 const CRMContext = createContext<CRMContextValue | undefined>(undefined);
 
 export function CRMProvider({ children }: { children: ReactNode }) {
-  const [customers, setCustomers] = useCollectionState<Customer[]>("crm_customers", SEED_CUSTOMERS);
+  const [storedCustomers, setCustomers] = useCollectionState<Customer[]>("crm_customers", SEED_CUSTOMERS);
+  const customers = Array.isArray(storedCustomers) ? storedCustomers : SEED_CUSTOMERS;
 
   const findCustomerByPhone = useCallback(
     (phone: string): Customer | undefined => {

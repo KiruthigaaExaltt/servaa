@@ -7,6 +7,19 @@ import {
 } from "@workspace/db";
 import { replaceResource } from "./resourceWriter";
 
+const DEFAULT_LOYALTY_RULES = {
+  pointsPerRupee: 0.01,
+  rupeePerPoint: 1,
+  signupBonus: 100,
+  birthdayBonus: 250,
+  tiers: [
+    { id: "Bronze", minSpend: 0, perks: "1× points · welcome drink", earnMultiplier: 1 },
+    { id: "Silver", minSpend: 5000, perks: "1.25× points · birthday treat", earnMultiplier: 1.25 },
+    { id: "Gold", minSpend: 20000, perks: "1.5× points · priority seating", earnMultiplier: 1.5 },
+    { id: "Platinum", minSpend: 50000, perks: "2× points · chef's table access", earnMultiplier: 2 },
+  ],
+};
+
 const models: Record<string, any> = {
   menu_categories: MenuCategory, menu_items: MenuItem, menu_combos: Combo,
   inventory_items: InventoryItem, inventory_grn: GoodsReceipt, inventory_prep_logs: PrepLog,
@@ -47,7 +60,9 @@ export async function readResource(outletId: string, key: string): Promise<unkno
     }
     return result;
   }
-  if (key === "crm_loyalty_rules") return (await LoyaltyConfig.findOne({ outletId }).select("+clientPayload").lean() as any)?.clientPayload;
+  if (key === "crm_loyalty_rules") {
+    return (await LoyaltyConfig.findOne({ outletId }).select("+clientPayload").lean() as any)?.clientPayload ?? DEFAULT_LOYALTY_RULES;
+  }
   if (key === "crew_permissions") return Object.fromEntries((await RolePolicy.find({ outletId }).select("role permissions").lean() as any[]).map((x) => [x.role, x.permissions]));
   if (key === "accounts_income" || key === "accounts_expenses") {
     const type = key === "accounts_income" ? "income" : "expense";

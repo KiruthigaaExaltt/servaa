@@ -34,7 +34,13 @@ export function useCollectionState<T>(
       headers: { "x-outlet-slug": OUTLET_SLUG },
     })
       .then(async (response) => response.ok ? response.json() as Promise<{ value: T; revision: number }> : undefined)
-      .then((data) => { if (active && data) { found = true; revision.current = data.revision; setValue(data.value); } })
+      .then((data) => {
+        if (active && data && data.value !== undefined) {
+          found = true;
+          revision.current = data.revision;
+          setValue(data.value);
+        }
+      })
       .catch(() => undefined)
       .finally(() => {
         hydrated.current = true;
@@ -49,6 +55,7 @@ export function useCollectionState<T>(
       void fetch(`${API_BASE}/collections/${encodeURIComponent(key)}`, { credentials: "include", headers: { "x-outlet-slug": OUTLET_SLUG } }).then(async (response) => {
         if (!response.ok) return;
         const latest = await response.json() as { value: T; revision: number };
+        if (latest.value === undefined) return;
         revision.current = latest.revision;
         setValue(latest.value);
       });

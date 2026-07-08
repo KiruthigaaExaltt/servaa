@@ -79,14 +79,33 @@ const CHANNEL_TONE: Record<CampaignChannel, string> = {
   Push: "bg-purple-50 text-purple-700 ring-purple-200",
 };
 
+function asArray<T>(value: T[] | unknown, fallback: T[]): T[] {
+  return Array.isArray(value) ? value : fallback;
+}
+
+function normalizeRules(value: LoyaltyRules | unknown): LoyaltyRules {
+  const candidate = value as Partial<LoyaltyRules> | undefined;
+  return {
+    ...SEED_RULES,
+    ...(candidate && typeof candidate === "object" ? candidate : {}),
+    tiers: Array.isArray(candidate?.tiers) && candidate.tiers.length > 0
+      ? candidate.tiers
+      : SEED_RULES.tiers,
+  };
+}
+
 export function CRMLoyalty() {
   const [tab, setTab] = useState<TabId>("dashboard");
   const { customers } = useCRM();
-  const [campaigns, setCampaigns] = useCollectionState<Campaign[]>("crm_campaigns", SEED_CAMPAIGNS);
-  const [coupons, setCoupons] = useCollectionState<Coupon[]>("crm_coupons", SEED_COUPONS);
-  const [rules, setRules] = useCollectionState<LoyaltyRules>("crm_loyalty_rules", SEED_RULES);
-  const [templates] = useCollectionState<MessageTemplate[]>("crm_message_templates", SEED_TEMPLATES);
+  const [storedCampaigns, setCampaigns] = useCollectionState<Campaign[]>("crm_campaigns", SEED_CAMPAIGNS);
+  const [storedCoupons, setCoupons] = useCollectionState<Coupon[]>("crm_coupons", SEED_COUPONS);
+  const [storedRules, setRules] = useCollectionState<LoyaltyRules>("crm_loyalty_rules", SEED_RULES);
+  const [storedTemplates] = useCollectionState<MessageTemplate[]>("crm_message_templates", SEED_TEMPLATES);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const campaigns = asArray(storedCampaigns, SEED_CAMPAIGNS);
+  const coupons = asArray(storedCoupons, SEED_COUPONS);
+  const rules = normalizeRules(storedRules);
+  const templates = asArray(storedTemplates, SEED_TEMPLATES);
 
   const pushToast = (text: string, tone: Toast["tone"] = "success") => {
     const id = Date.now() + Math.random();
