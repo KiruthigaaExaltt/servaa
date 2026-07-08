@@ -9,10 +9,15 @@ import { rm } from "node:fs/promises";
 globalThis.require = createRequire(import.meta.url);
 
 const artifactDir = path.dirname(fileURLToPath(import.meta.url));
+const selectedEnvFile = process.env.SERVAA_BACKEND_ENV_FILE ?? path.resolve(artifactDir, ".env");
+const selectedProfile = process.env.SERVAA_BUILD_PROFILE ?? process.env.NODE_ENV ?? "local";
 
 async function buildAll() {
   const distDir = path.resolve(artifactDir, "dist");
   await rm(distDir, { recursive: true, force: true });
+  console.log(`[api-build] Environment profile: ${selectedProfile}`);
+  console.log(`[api-build] Environment file: ${selectedEnvFile}`);
+  console.log(`[api-build] Loaded PORT=${process.env.PORT ?? "(not set)"}, DEFAULT_OUTLET_SLUG=${process.env.DEFAULT_OUTLET_SLUG ?? "(not set)"}`);
 
   await esbuild({
     entryPoints: [path.resolve(artifactDir, "src/index.ts")],

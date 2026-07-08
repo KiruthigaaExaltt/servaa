@@ -1,32 +1,32 @@
 import fs from "node:fs";
 import net from "node:net";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 
-const rawPort = process.env.PORT ?? "20279";
-
-const port = Number(rawPort);
-
-if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${rawPort}"`);
-}
-
-const basePath = process.env.BASE_PATH ?? "/";
-
-const apiServerEnvPath = path.resolve(
-  import.meta.dirname,
-  "..",
-  "api-server",
-  ".env",
-);
 const apiServerRuntimePortPath = path.resolve(
   import.meta.dirname,
   "..",
   "api-server",
   ".runtime-port",
 );
+
+function getEnvFileName(mode: string): string {
+  if (mode === "production") return ".env.production";
+  if (mode === "staging") return ".env.staging";
+  if (mode === "demo") return ".env.demo";
+  return ".env";
+}
+
+function getApiServerEnvPath(mode: string): string {
+  return process.env.SERVAA_BACKEND_ENV_FILE ?? path.resolve(
+    import.meta.dirname,
+    "..",
+    "api-server",
+    getEnvFileName(mode),
+  );
+}
 
 function readEnvFile(filePath: string): Record<string, string> {
   if (!fs.existsSync(filePath)) {
@@ -62,7 +62,8 @@ function readPortFile(filePath: string): number | undefined {
   return Number.isNaN(port) || port <= 0 ? undefined : port;
 }
 
-async function resolveApiProxyTarget(): Promise<{ host: string; port: number; target: string; source: string }> {
+async function resolveApiProxyTarget(mode: string): Promise<{ host: string; port: number; target: string; source: string }> {
+  const apiServerEnvPath = getApiServerEnvPath(mode);
   const apiEnv = readEnvFile(apiServerEnvPath);
   const rawBackendPort = apiEnv.PORT;
   const backendPort = Number(rawBackendPort);
@@ -111,8 +112,23 @@ function isReachable(host: string, port: number): Promise<boolean> {
   });
 }
 
-export default defineConfig(async ({ command }) => {
-  let apiProxy = await resolveApiProxyTarget();
+export default defineConfig(async ({ command, mode }) => {
+  const env = loadEnv(mode, import.meta.dirname, "");
+  const frontendEnvPath = process.env.SERVAA_FRONTEND_ENV_FILE ?? path.resolve(import.meta.dirname, getEnvFileName(mode));
+  const apiServerEnvPath = getApiServerEnvPath(mode);
+  const rawPort = env.PORT ?? process.env.PORT ?? "20279";
+  const port = Number(rawPort);
+
+  if (Number.isNaN(port) || port <= 0) {
+    throw new Error(`Invalid PORT value: "${rawPort}"`);
+  }
+
+  const basePath = env.BASE_PATH ?? process.env.BASE_PATH ?? "/";
+  console.log(`[servaa-vite] Mode: ${mode}`);
+  console.log(`[servaa-vite] Frontend env file: ${frontendEnvPath}`);
+  console.log(`[servaa-vite] Backend env file: ${apiServerEnvPath}`);
+
+  let apiProxy = await resolveApiProxyTarget(mode);
 
   if (command === "serve" && !(await isReachable(apiProxy.host, apiProxy.port))) {
     console.warn(
@@ -150,7 +166,7 @@ export default defineConfig(async ({ command }) => {
           target: apiProxy.target,
           changeOrigin: true,
           async bypass(_req, _res, options) {
-            apiProxy = await resolveApiProxyTarget();
+            apiProxy = await resolveApiProxyTarget(mode);
             options.target = apiProxy.target;
           },
           configure(proxy) {
