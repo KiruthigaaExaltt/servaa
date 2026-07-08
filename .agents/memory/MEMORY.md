@@ -1,9 +1,0 @@
-- [FOH state-flow constraints](foh-state-flow.md) — KDS occupancy only promotes Vacant/Reserved; one pending bill per table; CRM phone = last 10 digits, visits counted on settle.
-- [Servaa persistence layer](servaa-persistence.md) — all key context state uses usePersist hook; provider order matters (SettingsProvider > RoleProvider > ... > FOHProvider)
-- [Servaa settlement flow](servaa-settlement.md) — useSettlement hook is the single settlement path; FOHContext.settleOngoing reads tax rates from SettingsContext
-- [Servaa security model](servaa-security.md) — RoleContext: 3-attempt PIN lockout/30s; SettingsContext.changePin requires current PIN; no setAdminPin exported
-- [Menu admin combos & dynamic pricing](menu-admin-pricing.md) — item delete must cascade to combo slots + auto-disable empty-slot combos; one pricing rule per channel; time rules wrap overnight.
-- [KDS station rails](kds-station-rails.md) — KDS relabels StationId Hot/Cold/Bar as Tandoor/Cold/Bar (UI only); station rail filters items + scopes actions; EXPO groups by station with readiness.
-- [Inventory procurement](inventory-procurement.md) — vendors derived live from items; payables are static seed; auto-generate PO dedupe must span all open (Draft+Sent) states.
-- [Servaa cross-module sync](servaa-cross-module-sync.md) — span-module state must flow through context providers; ledger idempotency + "Adjustment" mode excluded from cash recon.
-- [Servaa inventory & prep model](servaa-inventory-model.md) — Inventory has NO PO/vendor UI (moved to BOH); GRN tops up stock + posts expense; PREP_RECIPES (bulk yield) vs SEED_RECIPES (per-portion) are distinct.

@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, Search, ChevronDown, Check } from "lucide-react";
+import { Bell, Search, ChevronDown, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { MODULES, type ModuleId } from "@/lib/modules";
 import { useRole, ROLE_BADGE, type UserRole } from "@/context/RoleContext";
 
 const ALL_ROLES: UserRole[] = ["Admin", "Manager", "Cashier", "Server", "Kitchen"];
+const NAV_SCROLL_EDGE_TOLERANCE = 2;
 
 interface TopNavProps {
   active: ModuleId;
@@ -17,8 +18,47 @@ export function TopNav({ active, onChange }: TopNavProps) {
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [roleOpen, setRoleOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [navScrollState, setNavScrollState] = useState({
+    hasOverflow: false,
+    canScrollLeft: false,
+    canScrollRight: false,
+  });
 
   const visibleModules = MODULES.filter((m) => allowedModules.includes(m.id));
+
+  const updateNavScrollState = useCallback(() => {
+    const container = scrollerRef.current;
+    if (!container) return;
+
+    const hasOverflow =
+      container.scrollWidth - container.clientWidth > NAV_SCROLL_EDGE_TOLERANCE;
+    const canScrollLeft = container.scrollLeft > NAV_SCROLL_EDGE_TOLERANCE;
+    const canScrollRight =
+      container.scrollLeft + container.clientWidth <
+      container.scrollWidth - NAV_SCROLL_EDGE_TOLERANCE;
+
+    setNavScrollState((previous) => {
+      if (
+        previous.hasOverflow === hasOverflow &&
+        previous.canScrollLeft === canScrollLeft &&
+        previous.canScrollRight === canScrollRight
+      ) {
+        return previous;
+      }
+
+      return { hasOverflow, canScrollLeft, canScrollRight };
+    });
+  }, []);
+
+  const scrollNav = useCallback((direction: -1 | 1) => {
+    const container = scrollerRef.current;
+    if (!container) return;
+
+    container.scrollBy({
+      left: direction * Math.max(container.clientWidth * 0.75, 180),
+      behavior: "smooth",
+    });
+  }, []);
 
   useEffect(() => {
     const el = itemRefs.current[active];
@@ -36,6 +76,28 @@ export function TopNav({ active, onChange }: TopNavProps) {
       }
     }
   }, [active]);
+
+  useEffect(() => {
+    const container = scrollerRef.current;
+    if (!container) return undefined;
+
+    updateNavScrollState();
+
+    container.addEventListener("scroll", updateNavScrollState, { passive: true });
+    window.addEventListener("resize", updateNavScrollState);
+
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(updateNavScrollState)
+        : null;
+    resizeObserver?.observe(container);
+
+    return () => {
+      container.removeEventListener("scroll", updateNavScrollState);
+      window.removeEventListener("resize", updateNavScrollState);
+      resizeObserver?.disconnect();
+    };
+  }, [updateNavScrollState, visibleModules.length]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -62,45 +124,73 @@ export function TopNav({ active, onChange }: TopNavProps) {
         </button>
 
         {/* Center nav */}
-        <nav className="relative min-w-0 flex-1">
-          <div
-            ref={scrollerRef}
-            className="no-scrollbar flex items-stretch gap-1 overflow-x-auto"
-            role="tablist"
-            aria-label="Modules"
-          >
-            {visibleModules.map((m) => {
-              const isActive = m.id === active;
-              return (
-                <button
-                  key={m.id}
-                  ref={(el) => {
-                    itemRefs.current[m.id] = el;
-                  }}
-                  role="tab"
-                  aria-selected={isActive}
-                  onClick={() => onChange(m.id)}
-                  className={`relative shrink-0 whitespace-nowrap px-3 py-4 text-sm font-medium transition-colors ${
-                    isActive
-                      ? "text-[color:var(--primary-orange)]"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  {m.label}
-                  {isActive && (
-                    <motion.span
-                      layoutId="active-tab-underline"
-                      className="absolute inset-x-2 bottom-0 h-[3px] rounded-t"
-                      style={{ backgroundColor: "var(--primary-orange)" }}
-                      transition={{ type: "spring", stiffness: 400, damping: 32 }}
-                    />
-                  )}
-                </button>
-              );
-            })}
+        <nav className="relative min-w-0 flex-1" aria-label="Primary modules">
+          <div className="flex min-w-0 items-stretch gap-1">
+            {navScrollState.hasOverflow && (
+              navScrollState.canScrollLeft ? (
+                <NavScrollButton
+                  direction="left"
+                  label="Scroll navigation left"
+                  onClick={() => scrollNav(-1)}
+                />
+              ) : (
+                <span className="h-12 w-8 shrink-0" aria-hidden="true" />
+              )
+            )}
+
+            <div className="relative min-w-0 flex-1">
+              <div
+                ref={scrollerRef}
+                className="no-scrollbar flex items-stretch gap-1 overflow-x-auto scroll-smooth"
+                role="tablist"
+                aria-label="Modules"
+              >
+                {visibleModules.map((m) => {
+                  const isActive = m.id === active;
+                  return (
+                    <button
+                      key={m.id}
+                      ref={(el) => {
+                        itemRefs.current[m.id] = el;
+                      }}
+                      role="tab"
+                      aria-selected={isActive}
+                      onClick={() => onChange(m.id)}
+                      className={`relative shrink-0 whitespace-nowrap px-3 py-4 text-sm font-medium transition-colors ${
+                        isActive
+                          ? "text-[color:var(--primary-orange)]"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}
+                    >
+                      {m.label}
+                      {isActive && (
+                        <motion.span
+                          layoutId="active-tab-underline"
+                          className="absolute inset-x-2 bottom-0 h-[3px] rounded-t"
+                          style={{ backgroundColor: "var(--primary-orange)" }}
+                          transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white to-transparent" />
+              <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white to-transparent" />
+            </div>
+
+            {navScrollState.hasOverflow && (
+              navScrollState.canScrollRight ? (
+                <NavScrollButton
+                  direction="right"
+                  label="Scroll navigation right"
+                  onClick={() => scrollNav(1)}
+                />
+              ) : (
+                <span className="h-12 w-8 shrink-0" aria-hidden="true" />
+              )
+            )}
           </div>
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white to-transparent" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white to-transparent" />
         </nav>
 
         {/* Right icons */}
@@ -167,6 +257,29 @@ export function TopNav({ active, onChange }: TopNavProps) {
         </div>
       </div>
     </header>
+  );
+}
+
+function NavScrollButton({
+  direction,
+  label,
+  onClick,
+}: {
+  direction: "left" | "right";
+  label: string;
+  onClick: () => void;
+}) {
+  const Icon = direction === "left" ? ChevronLeft : ChevronRight;
+
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className="my-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
+    >
+      <Icon className="h-4 w-4" />
+    </button>
   );
 }
 
